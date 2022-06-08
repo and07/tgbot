@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 
 	"github.com/Squirrel-Network/gobotapi"
@@ -85,4 +86,7 @@ func main() {
 
 	})
 	client.Run()
+
+	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) { fmt.Fprintf(w, "hello\n") })
+	http.ListenAndServe(serviceEnv.Port, nil)
 }
