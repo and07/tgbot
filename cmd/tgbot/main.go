@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -78,27 +77,27 @@ func main() {
 			return
 		}
 		logger.Info("GetStream Done")
-
-		logger.Info("ReadAll")
-		dat, err := ioutil.ReadAll(stream)
-		if err != nil {
-			text.Text = err.Error()
-			client.Invoke(text)
-			return
-		}
-		logger.Info("ReadAll Done")
 		/*
-			client.Invoke(&methods.SendVideo{
-				ChatID: msg.Chat.ID,
-				Video: types.InputFile{
-					Name:  msg.Text + ".mp4",
-					Bytes: dat,
-				},
-			})
+			logger.Info("ReadAll")
+			dat, err := ioutil.ReadAll(stream)
+			if err != nil {
+				text.Text = err.Error()
+				client.Invoke(text)
+				return
+			}
+			logger.Info("ReadAll Done")
+
+				client.Invoke(&methods.SendVideo{
+					ChatID: msg.Chat.ID,
+					Video: types.InputFile{
+						Name:  msg.Text + ".mp4",
+						Bytes: dat,
+					},
+				})
 		*/
-		videoSend := tgbotapi.NewVideo(msg.Chat.ID, tgbotapi.FileBytes{
-			Name:  msg.Text + ".mp4",
-			Bytes: dat,
+		videoSend := tgbotapi.NewVideo(msg.Chat.ID, tgbotapi.FileReader{
+			Name:   msg.Text + ".mp4",
+			Reader: stream,
 		})
 
 		msgXX, err := bot.Send(videoSend)
