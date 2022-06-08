@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/Squirrel-Network/gobotapi"
 	"github.com/Squirrel-Network/gobotapi/methods"
@@ -36,17 +36,16 @@ func main() {
 		logger.Error("msg", "failed to parse service env", "error", err)
 		os.Exit(1)
 	}
-	/*
-		http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-			fmt.Fprintf(w, "hello\n")
-		})
 
-		go func() { http.ListenAndServe(":"+serviceEnv.Port, nil) }()
-	*/
+	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(w, "hello\n")
+	})
+
+	go func() { http.ListenAndServe(":"+serviceEnv.Port, nil) }()
+
 	clientYouTube := youtube.Client{}
 
 	client := gobotapi.NewClient(serviceEnv.Token)
-	client.BotApiConfig.Port, _ = strconv.Atoi(serviceEnv.Port)
 
 	client.OnMessage(func(client gobotapi.Client, msg types.Message) {
 
