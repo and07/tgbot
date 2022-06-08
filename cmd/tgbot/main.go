@@ -102,6 +102,7 @@ func main() {
 
 		msgXX, err := bot.Send(videoSend)
 		if err != nil {
+			logger.Error(err)
 			text.Text = err.Error()
 			client.Invoke(text)
 			return
