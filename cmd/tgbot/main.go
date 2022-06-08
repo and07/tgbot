@@ -37,6 +37,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(w, "hello\n")
+	})
+
+	go func() { http.ListenAndServe(":"+serviceEnv.Port, nil) }()
+
 	clientYouTube := youtube.Client{}
 
 	client := gobotapi.NewClient(serviceEnv.Token)
@@ -87,6 +93,4 @@ func main() {
 	})
 	client.Run()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) { fmt.Fprintf(w, "hello\n") })
-	http.ListenAndServe(serviceEnv.Port, nil)
 }
