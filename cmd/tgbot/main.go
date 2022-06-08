@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 
 	"github.com/Squirrel-Network/gobotapi"
 	"github.com/Squirrel-Network/gobotapi/methods"
 	"github.com/Squirrel-Network/gobotapi/types"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/kkdai/youtube/v2"
 	"go.uber.org/zap"
@@ -42,6 +44,11 @@ func main() {
 	})
 
 	go func() { http.ListenAndServe(":"+serviceEnv.Port, nil) }()
+
+	bot, err := tgbotapi.NewBotAPI(serviceEnv.Token)
+	if err != nil {
+		log.Panic(err)
+	}
 
 	clientYouTube := youtube.Client{}
 
@@ -80,15 +87,27 @@ func main() {
 			return
 		}
 		logger.Info("ReadAll Done")
-
-		client.Invoke(&methods.SendVideo{
-			ChatID: msg.Chat.ID,
-			Video: types.InputFile{
-				Name:  msg.Text + ".mp4",
-				Bytes: dat,
-			},
+		/*
+			client.Invoke(&methods.SendVideo{
+				ChatID: msg.Chat.ID,
+				Video: types.InputFile{
+					Name:  msg.Text + ".mp4",
+					Bytes: dat,
+				},
+			})
+		*/
+		videoSend := tgbotapi.NewVideo(msg.Chat.ID, tgbotapi.FileBytes{
+			Name:  msg.Text + ".mp4",
+			Bytes: dat,
 		})
 
+		msgXX, err := bot.Send(videoSend)
+		if err != nil {
+			text.Text = err.Error()
+			client.Invoke(text)
+			return
+		}
+		logger.Info("Done ", msgXX)
 		logger.Info("Done")
 
 	})
