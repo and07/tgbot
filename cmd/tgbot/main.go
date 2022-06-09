@@ -84,29 +84,29 @@ func helper(ctx context.Context, token, name string, f io.Reader) {
 
 		// Sending message with media.
 		log.Println("Sending file")
+
+		_, err = target.Video(ctx, upload)
+		if err != nil {
+			return fmt.Errorf("send: %w", err)
+		}
 		/*
-			_, err = target.Video(ctx, upload)
+
+			// Now we have uploaded file handle, sending it as styled message.
+			// First, preparing message.
+			document := message.UploadedDocument(upload)
+
+			// You can set MIME type, send file as video or audio by using
+			// document builder:
+			document.
+				MIME("video/mp4").
+				Filename(name).
+				Video()
+
+			_, err = target.Media(ctx, document)
 			if err != nil {
 				return fmt.Errorf("send: %w", err)
 			}
 		*/
-
-		// Now we have uploaded file handle, sending it as styled message.
-		// First, preparing message.
-		document := message.UploadedDocument(upload)
-
-		// You can set MIME type, send file as video or audio by using
-		// document builder:
-		document.
-			MIME("video/mp4").
-			Filename(name).
-			Video()
-
-		_, err = target.Media(ctx, document)
-		if err != nil {
-			return fmt.Errorf("send: %w", err)
-		}
-
 		// Return to close client connection and free up resources.
 		return nil
 	}); err != nil {
