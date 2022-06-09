@@ -19,11 +19,38 @@ import (
 	"go.uber.org/zap"
 )
 
-func helper(ctx context.Context, name string, f io.Reader) {
+func helper(ctx context.Context, token, name string, f io.Reader) {
 	appID := 17294691
 	appHash := "cddcfe9c3d0d6d40cab8ed031e454df3"
-	client := telegram.NewClient(appID, appHash, telegram.Options{})
+
+	// Using custom session storage.
+	// You can save session to database, e.g. Redis, MongoDB or postgres.
+	// See memorySession for implementation details.
+	sessionStorage := &memorySession{}
+
+	client := telegram.NewClient(appID, appHash, telegram.Options{
+		SessionStorage: sessionStorage,
+	})
+
 	if err := client.Run(context.Background(), func(ctx context.Context) error {
+
+		// Checking auth status.
+		status, err := client.Auth().Status(ctx)
+		if err != nil {
+			return err
+		}
+		// Can be already authenticated if we have valid session in
+		// session storage.
+		if !status.Authorized {
+			// Otherwise, perform bot authentication.
+			if _, err := client.Auth().Bot(ctx, token); err != nil {
+				return err
+			}
+		}
+
+		// All good, manually authenticated.
+		log.Println("Done Auth")
+
 		// It is only valid to use client while this function is not returned
 		// and ctx is not cancelled.
 		api := client.API()
@@ -48,7 +75,7 @@ func helper(ctx context.Context, name string, f io.Reader) {
 		target := sender.Resolve("@and07mbot")
 
 		// Sending message with media.
-		log.Panicln("Sending file")
+		log.Println("Sending file")
 
 		_, err = target.Video(ctx, upload)
 		if err != nil {
@@ -177,7 +204,7 @@ func main() {
 
 			logger.Info("Done ", msgXX)
 		*/
-		helper(context.Background(), msg.Text+".mp4", stream)
+		helper(context.Background(), serviceEnv.Token, msg.Text+".mp4", stream)
 
 		logger.Info("Done")
 
