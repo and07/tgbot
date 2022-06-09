@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -9,11 +11,75 @@ import (
 	"github.com/Squirrel-Network/gobotapi"
 	"github.com/Squirrel-Network/gobotapi/methods"
 	"github.com/Squirrel-Network/gobotapi/types"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/gotd/td/telegram"
+	"github.com/gotd/td/telegram/message"
+	"github.com/gotd/td/telegram/uploader"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/kkdai/youtube/v2"
 	"go.uber.org/zap"
 )
+
+func helper(ctx context.Context, name string, f io.Reader) {
+	appID := 17294691
+	appHash := "cddcfe9c3d0d6d40cab8ed031e454df3"
+	client := telegram.NewClient(appID, appHash, telegram.Options{})
+	if err := client.Run(context.Background(), func(ctx context.Context) error {
+		// It is only valid to use client while this function is not returned
+		// and ctx is not cancelled.
+		api := client.API()
+
+		// Helper for uploading. Automatically uses big file upload when needed.
+		u := uploader.NewUploader(api)
+
+		// Helper for sending messages.
+		sender := message.NewSender(api).WithUploader(u)
+
+		// Uploading directly from path. Note that you can do it from
+		// io.Reader or buffer, see From* methods of uploader.
+		log.Println("Uploading file")
+
+		upload, err := u.FromReader(ctx, name, f)
+		if err != nil {
+			return fmt.Errorf("upload %q: %w", name, err)
+		}
+
+		// Resolving target. Can be telephone number or @nickname of user,
+		// group or channel.
+		target := sender.Resolve("@and07mbot")
+
+		// Sending message with media.
+		log.Panicln("Sending file")
+
+		_, err = target.Video(ctx, upload)
+		if err != nil {
+			return fmt.Errorf("send: %w", err)
+		}
+
+		/*
+			// Now we have uploaded file handle, sending it as styled message.
+			// First, preparing message.
+			document := message.UploadedDocument(upload,
+				html.String(nil, `Upload: <b>From bot</b>`),
+			)
+
+			// You can set MIME type, send file as video or audio by using
+			// document builder:
+			document.
+				MIME("video/mp4").
+				Filename(name).
+				Video()
+
+			_, err = target.Media(ctx, document)
+			if err != nil {
+				return fmt.Errorf("send: %w", err)
+			}
+		*/
+		// Return to close client connection and free up resources.
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+}
 
 func main() {
 
@@ -43,12 +109,12 @@ func main() {
 	})
 
 	go func() { http.ListenAndServe(":"+serviceEnv.Port, nil) }()
-
-	bot, err := tgbotapi.NewBotAPI(serviceEnv.Token)
-	if err != nil {
-		log.Panic(err)
-	}
-
+	/*
+		bot, err := tgbotapi.NewBotAPI(serviceEnv.Token)
+		if err != nil {
+			log.Panic(err)
+		}
+	*/
 	clientYouTube := youtube.Client{}
 
 	client := gobotapi.NewClient(serviceEnv.Token)
@@ -78,36 +144,41 @@ func main() {
 		}
 		logger.Info("GetStream Done")
 		/*
-			logger.Info("ReadAll")
-			dat, err := ioutil.ReadAll(stream)
+				logger.Info("ReadAll")
+				dat, err := ioutil.ReadAll(stream)
+				if err != nil {
+					text.Text = err.Error()
+					client.Invoke(text)
+					return
+				}
+				logger.Info("ReadAll Done")
+
+					client.Invoke(&methods.SendVideo{
+						ChatID: msg.Chat.ID,
+						Video: types.InputFile{
+							Name:  msg.Text + ".mp4",
+							Bytes: dat,
+						},
+					})
+			/
+			videoSend := tgbotapi.NewVideo(msg.Chat.ID, tgbotapi.FileReader{
+				Name:   msg.Text + ".mp4",
+				Reader: stream,
+			})
+
+			msgXX, err := bot.Send(videoSend)
 			if err != nil {
+				logger.Error(err)
 				text.Text = err.Error()
 				client.Invoke(text)
 				return
 			}
-			logger.Info("ReadAll Done")
 
-				client.Invoke(&methods.SendVideo{
-					ChatID: msg.Chat.ID,
-					Video: types.InputFile{
-						Name:  msg.Text + ".mp4",
-						Bytes: dat,
-					},
-				})
+
+			logger.Info("Done ", msgXX)
 		*/
-		videoSend := tgbotapi.NewVideo(msg.Chat.ID, tgbotapi.FileReader{
-			Name:   msg.Text + ".mp4",
-			Reader: stream,
-		})
+		helper(context.Background(), msg.Text+".mp4", stream)
 
-		msgXX, err := bot.Send(videoSend)
-		if err != nil {
-			logger.Error(err)
-			text.Text = err.Error()
-			client.Invoke(text)
-			return
-		}
-		logger.Info("Done ", msgXX)
 		logger.Info("Done")
 
 	})
