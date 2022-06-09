@@ -80,7 +80,7 @@ func helper(ctx context.Context, token, name string, f io.Reader) {
 
 		// Resolving target. Can be telephone number or @nickname of user,
 		// group or channel.
-		target := sender.Resolve("@and07mbot")
+		target := sender.Resolve("@and07m")
 
 		// Sending message with media.
 		log.Println("Sending file")
