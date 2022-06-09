@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -65,7 +66,14 @@ func helper(ctx context.Context, token, name string, f io.Reader) {
 		// io.Reader or buffer, see From* methods of uploader.
 		log.Println("Uploading file")
 
-		upload, err := u.FromReader(ctx, name, f)
+		log.Println("ReadAll")
+		dat, err := ioutil.ReadAll(f)
+		if err != nil {
+			return err
+		}
+		log.Println("ReadAll Done")
+
+		upload, err := u.FromBytes(ctx, name, dat)
 		if err != nil {
 			return fmt.Errorf("upload %q: %w", name, err)
 		}
