@@ -212,6 +212,8 @@ func main() {
 		*/
 		helper(context.Background(), serviceEnv.Token, msg.Text+".mp4", stream)
 
+		stream.Close()
+
 		logger.Info("Done")
 
 	})
