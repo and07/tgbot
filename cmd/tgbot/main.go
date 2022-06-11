@@ -20,16 +20,14 @@ import (
 	"go.uber.org/zap"
 )
 
-func helper(ctx context.Context, token, name string, f io.Reader) {
-	appID := 17294691
-	appHash := "cddcfe9c3d0d6d40cab8ed031e454df3"
+func helper(ctx context.Context, serviceEnv Configuration, name string, f io.Reader) error {
 
 	// Using custom session storage.
 	// You can save session to database, e.g. Redis, MongoDB or postgres.
 	// See memorySession for implementation details.
 	sessionStorage := &memorySession{}
 
-	client := telegram.NewClient(appID, appHash, telegram.Options{
+	client := telegram.NewClient(serviceEnv.AppID, serviceEnv.AppHash, telegram.Options{
 		SessionStorage: sessionStorage,
 	})
 
@@ -44,7 +42,7 @@ func helper(ctx context.Context, token, name string, f io.Reader) {
 		// session storage.
 		if !status.Authorized {
 			// Otherwise, perform bot authentication.
-			if _, err := client.Auth().Bot(ctx, token); err != nil {
+			if _, err = client.Auth().Bot(ctx, serviceEnv.Token); err != nil {
 				return err
 			}
 		}
@@ -110,8 +108,10 @@ func helper(ctx context.Context, token, name string, f io.Reader) {
 		// Return to close client connection and free up resources.
 		return nil
 	}); err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
 func main() {
@@ -123,7 +123,7 @@ func main() {
 	}
 	// flushes buffer, if any
 	defer func() {
-		if err := simpleLogger.Sync(); err != nil {
+		if err = simpleLogger.Sync(); err != nil {
 			fmt.Println("OOOPS Logger sync failed")
 		}
 	}()
@@ -142,12 +142,7 @@ func main() {
 	})
 
 	go func() { http.ListenAndServe(":"+serviceEnv.Port, nil) }()
-	/*
-		bot, err := tgbotapi.NewBotAPI(serviceEnv.Token)
-		if err != nil {
-			log.Panic(err)
-		}
-	*/
+
 	clientYouTube := youtube.Client{}
 
 	client := gobotapi.NewClient(serviceEnv.Token)
@@ -176,42 +171,13 @@ func main() {
 			return
 		}
 		logger.Info("GetStream Done")
-		/*
-				logger.Info("ReadAll")
-				dat, err := ioutil.ReadAll(stream)
-				if err != nil {
-					text.Text = err.Error()
-					client.Invoke(text)
-					return
-				}
-				logger.Info("ReadAll Done")
 
-					client.Invoke(&methods.SendVideo{
-						ChatID: msg.Chat.ID,
-						Video: types.InputFile{
-							Name:  msg.Text + ".mp4",
-							Bytes: dat,
-						},
-					})
-			/
-			videoSend := tgbotapi.NewVideo(msg.Chat.ID, tgbotapi.FileReader{
-				Name:   msg.Text + ".mp4",
-				Reader: stream,
-			})
-
-			msgXX, err := bot.Send(videoSend)
-			if err != nil {
-				logger.Error(err)
-				text.Text = err.Error()
-				client.Invoke(text)
-				return
-			}
-
-
-			logger.Info("Done ", msgXX)
-		*/
-		helper(context.Background(), serviceEnv.Token, msg.Text+".mp4", stream)
-
+		err = helper(context.Background(), serviceEnv, msg.Text+".mp4", stream)
+		if err != nil {
+			text.Text = err.Error()
+			client.Invoke(text)
+			return
+		}
 		stream.Close()
 
 		logger.Info("Done")
